@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, Scissors, User } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
@@ -9,7 +8,7 @@ import { bookingFormSchema, type BookingFormValues } from '@/schemas/booking-sch
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { AccessibilityWrapper } from '@/components/AccessibilityWrapper';
+import AccessibilityWrapper from '@/components/AccessibilityWrapper';
 
 const BookingForm = () => {
   const [step, setStep] = useState(1);
