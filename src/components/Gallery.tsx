@@ -72,7 +72,7 @@ export const Gallery = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-center mb-8">
+      <div className="flex items-center justify-center mb-8 overflow-x-auto py-2 sm:overflow-visible">
         <div className="inline-flex bg-gray-100 rounded-full p-1">
           {categories.map((category) => (
             <button

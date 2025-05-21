@@ -1,0 +1,83 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Bookings collection rules
+    match /bookings/{bookingId} {
+      // Allow read if the booking belongs to the authenticated user or if the user is an admin
+      allow read: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      
+      // Allow create if user is authenticated and the userId field in the document matches their UID
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid && 
+        validateBookingFields(request.resource.data);
+      
+      // Allow update if the booking belongs to the authenticated user and they're not modifying specific fields
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        validateBookingUpdateFields(request.resource.data);
+      
+      // Allow delete if the booking belongs to the user and it's at least 24 hours before the appointment
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        isAtLeast24HoursBefore(resource.data.date, resource.data.time);
+    }
+    
+    // Users collection rules
+    match /users/{userId} {
+      // Allow read/write only for the authenticated user's own document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow admin access to all user documents
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Services collection - read-only for all authenticated users
+    match /services/{serviceId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Barbers collection - read-only for all authenticated users
+    match /barbers/{barberId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Helper functions
+    function validateBookingFields(data) {
+      // Ensure all required fields are present and of the correct type
+      return data.size() >= 8 &&
+        'service' in data && data.service is string &&
+        'barber' in data && data.barber is string &&
+        'date' in data && data.date is string &&
+        'time' in data && data.time is string &&
+        'name' in data && data.name is string &&
+        'email' in data && data.email is string &&
+        'phone' in data && data.phone is string &&
+        'userId' in data && data.userId is string &&
+        data.userId == request.auth.uid;
+    }
+    
+    function validateBookingUpdateFields(data) {
+      // For updates, prevent modification of key fields after booking
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['service', 'barber', 'date', 'time', 'userId']);
+    }
+    
+    function isAtLeast24HoursBefore(dateStr, timeStr) {
+      // Combine date and time strings into a timestamp
+      let bookingTime = timestamp.valueOf(dateStr + " " + timeStr);
+      // Get current time
+      let currentTime = request.time;
+      // Check if booking is at least 24 hours in the future
+      let oneDayInMs = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      return (bookingTime - currentTime) >= oneDayInMs;
+    }
+  }
+}

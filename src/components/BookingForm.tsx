@@ -3,34 +3,18 @@ import { useState, useEffect } from 'react';
 import { Calendar, Clock, Scissors, User } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { formatDate, formatDisplayDate, getAvailableDates, parseDate } from '@/utils/date-utils';
-
-interface BookingFormData {
-  service: string;
-  barber: string;
-  date: string;
-  time: string;
-  name: string;
-  email: string;
-  phone: string;
-  notes: string;
-}
-
-const initialFormData: BookingFormData = {
-  service: '',
-  barber: '',
-  date: '',
-  time: '',
-  name: '',
-  email: '',
-  phone: '',
-  notes: '',
-};
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { bookingFormSchema, type BookingFormValues } from '@/schemas/booking-schema';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { AccessibilityWrapper } from '@/components/AccessibilityWrapper';
 
 const BookingForm = () => {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<BookingFormData>(initialFormData);
-  const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   const services = [
@@ -55,6 +39,20 @@ const BookingForm = () => {
     "3:00 PM", "4:00 PM", "5:00 PM"
   ];
 
+  const form = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingFormSchema),
+    defaultValues: {
+      service: '',
+      barber: '',
+      date: '',
+      time: '',
+      name: '',
+      email: '',
+      phone: '',
+      notes: '',
+    },
+  });
+
   // Load available dates when component mounts
   useEffect(() => {
     // Get the next 14 days as available dates
@@ -64,7 +62,8 @@ const BookingForm = () => {
 
   // Reset available times when date changes
   useEffect(() => {
-    if (formData.date) {
+    const selectedDate = form.watch('date');
+    if (selectedDate) {
       setLoading(true);
       // In a real app, this would be a Firebase query to get available times
       // Simulating API call with setTimeout
@@ -75,60 +74,48 @@ const BookingForm = () => {
         setLoading(false);
       }, 500);
     }
-  }, [formData.date]);
+  }, [form.watch('date')]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate form data
-    if (!validateForm()) {
-      return;
-    }
-    
+  const onSubmit = (data: BookingFormValues) => {
     setLoading(true);
     
     // In a real app, we would submit the form data to Firebase
     // Simulating API call with setTimeout
     setTimeout(() => {
-      console.log("Booking submitted:", formData);
+      console.log("Booking submitted:", data);
       toast.success("Your appointment has been scheduled!");
       
       // Reset form
-      setFormData(initialFormData);
+      form.reset();
       setStep(1);
       setLoading(false);
     }, 1000);
   };
 
-  const validateForm = (): boolean => {
-    // Simple validation
-    if (step === 1 && (!formData.service || !formData.barber)) {
-      toast.error("Please select both a service and a barber");
-      return false;
-    }
-    
-    if (step === 2 && (!formData.date || !formData.time)) {
-      toast.error("Please select both a date and time");
-      return false;
-    }
-    
-    if (step === 3 && (!formData.name || !formData.email || !formData.phone)) {
-      toast.error("Please fill in all required fields");
-      return false;
-    }
-    
-    return true;
-  };
-
   const nextStep = () => {
-    if (validateForm()) {
-      setStep(step + 1);
+    // For step 1, validate service and barber
+    if (step === 1) {
+      const service = form.getValues('service');
+      const barber = form.getValues('barber');
+      
+      if (!service || !barber) {
+        form.trigger(['service', 'barber']);
+        return;
+      }
     }
+    
+    // For step 2, validate date and time
+    if (step === 2) {
+      const date = form.getValues('date');
+      const time = form.getValues('time');
+      
+      if (!date || !time) {
+        form.trigger(['date', 'time']);
+        return;
+      }
+    }
+    
+    setStep(step + 1);
   };
   
   const prevStep = () => setStep(step - 1);
@@ -145,7 +132,7 @@ const BookingForm = () => {
               <div className="ml-2 text-sm font-medium">Service</div>
             </div>
           </div>
-          <div className="w-12 h-1 bg-gray-200">
+          <div className="w-12 h-1 bg-gray-200 hidden sm:block">
             <div className={`h-full ${step >= 2 ? 'bg-barber-purple' : 'bg-gray-200'}`}></div>
           </div>
           <div className={`flex-1 ${step >= 2 ? 'text-barber-purple' : 'text-gray-400'}`}>
@@ -156,7 +143,7 @@ const BookingForm = () => {
               <div className="ml-2 text-sm font-medium">Date & Time</div>
             </div>
           </div>
-          <div className="w-12 h-1 bg-gray-200">
+          <div className="w-12 h-1 bg-gray-200 hidden sm:block">
             <div className={`h-full ${step >= 3 ? 'bg-barber-purple' : 'bg-gray-200'}`}></div>
           </div>
           <div className={`flex-1 ${step >= 3 ? 'text-barber-purple' : 'text-gray-400'}`}>
@@ -170,244 +157,301 @@ const BookingForm = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-        {step === 1 && (
-          <div className="space-y-6 animate-fade-in">
-            <div>
-              <label className="block text-sm font-medium text-barber mb-2">Select Service</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3" role="radiogroup" aria-label="Services">
-                {services.map((service) => (
-                  <div 
-                    key={service}
-                    className={`
-                      border rounded-lg p-4 cursor-pointer transition-all hover:border-barber-purple
-                      ${formData.service === service ? 'border-barber-purple bg-barber-light/10' : 'border-gray-200'}
-                    `}
-                    onClick={() => setFormData(prev => ({ ...prev, service }))}
-                    role="radio"
-                    aria-checked={formData.service === service}
-                    tabIndex={formData.service === service ? 0 : -1}
-                  >
-                    <p className="font-medium">{service}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-barber mb-2">Select Barber</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3" role="radiogroup" aria-label="Barbers">
-                {barbers.map((barber) => (
-                  <div 
-                    key={barber}
-                    className={`
-                      border rounded-lg p-4 cursor-pointer transition-all hover:border-barber-purple
-                      ${formData.barber === barber ? 'border-barber-purple bg-barber-light/10' : 'border-gray-200'}
-                    `}
-                    onClick={() => setFormData(prev => ({ ...prev, barber }))}
-                    role="radio"
-                    aria-checked={formData.barber === barber}
-                    tabIndex={formData.barber === barber ? 0 : -1}
-                  >
-                    <p className="font-medium">{barber}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex justify-end">
-              <button 
-                type="button" 
-                className="btn-primary"
-                onClick={nextStep}
-                disabled={!formData.service || !formData.barber || loading}
-                aria-busy={loading}
-              >
-                {loading ? 'Loading...' : 'Continue'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-6 animate-fade-in">
-            <div>
-              <label htmlFor="date" className="block text-sm font-medium text-barber mb-2">
-                Select Date
-              </label>
-              <select
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
-                required
-                aria-required="true"
-              >
-                <option value="">Select a date</option>
-                {availableDates.map((date) => (
-                  <option key={formatDate(date)} value={formatDate(date)}>
-                    {formatDisplayDate(date)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-barber mb-2">
-                Available Times
-              </label>
-              {loading ? (
-                <div className="grid grid-cols-3 gap-2">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="border rounded-lg p-3 bg-gray-100 animate-pulse h-10"></div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Available times">
-                  {availableTimes.map((time) => (
-                    <div 
-                      key={time}
-                      className={`
-                        border rounded-lg p-3 cursor-pointer text-center transition-all hover:border-barber-purple
-                        ${formData.time === time ? 'border-barber-purple bg-barber-light/10' : 'border-gray-200'}
-                      `}
-                      onClick={() => setFormData(prev => ({ ...prev, time }))}
-                      role="radio"
-                      aria-checked={formData.time === time}
-                      tabIndex={formData.time === time ? 0 : -1}
-                    >
-                      <p className="text-sm font-medium">{time}</p>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="bg-white rounded-lg shadow-md p-6">
+          {step === 1 && (
+            <div className="space-y-6 animate-fade-in">
+              <FormField
+                control={form.control}
+                name="service"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium text-barber mb-2">Select Service</FormLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3" role="radiogroup" aria-label="Services">
+                      {services.map((service) => (
+                        <div 
+                          key={service}
+                          className={`
+                            border rounded-lg p-4 cursor-pointer transition-all hover:border-barber-purple
+                            ${field.value === service ? 'border-barber-purple bg-barber-light/10' : 'border-gray-200'}
+                          `}
+                          onClick={() => form.setValue('service', service, { shouldValidate: true })}
+                          role="radio"
+                          aria-checked={field.value === service}
+                          tabIndex={field.value === service ? 0 : -1}
+                        >
+                          <p className="font-medium">{service}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="flex justify-between">
-              <button 
-                type="button" 
-                className="border border-gray-300 text-gray-700 px-6 py-3 rounded hover:bg-gray-50 transition-colors"
-                onClick={prevStep}
-                disabled={loading}
-              >
-                Back
-              </button>
-              <button 
-                type="button" 
-                className="btn-primary"
-                onClick={nextStep}
-                disabled={!formData.date || !formData.time || loading}
-                aria-busy={loading}
-              >
-                {loading ? 'Loading...' : 'Continue'}
-              </button>
+              <FormField
+                control={form.control}
+                name="barber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium text-barber mb-2">Select Barber</FormLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3" role="radiogroup" aria-label="Barbers">
+                      {barbers.map((barber) => (
+                        <div 
+                          key={barber}
+                          className={`
+                            border rounded-lg p-4 cursor-pointer transition-all hover:border-barber-purple
+                            ${field.value === barber ? 'border-barber-purple bg-barber-light/10' : 'border-gray-200'}
+                          `}
+                          onClick={() => form.setValue('barber', barber, { shouldValidate: true })}
+                          role="radio"
+                          aria-checked={field.value === barber}
+                          tabIndex={field.value === barber ? 0 : -1}
+                        >
+                          <p className="font-medium">{barber}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end">
+                <button 
+                  type="button" 
+                  className="btn-primary"
+                  onClick={nextStep}
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? 'Loading...' : 'Continue'}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {step === 3 && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 gap-6">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-barber mb-2">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
+          {step === 2 && (
+            <div className="space-y-6 animate-fade-in">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="date" className="block text-sm font-medium text-barber mb-2">
+                      Select Date
+                    </FormLabel>
+                    <FormControl>
+                      <select
+                        id="date"
+                        {...field}
+                        className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
+                        required
+                        aria-required="true"
+                      >
+                        <option value="">Select a date</option>
+                        {availableDates.map((date) => (
+                          <option key={formatDate(date)} value={formatDate(date)}>
+                            {formatDisplayDate(date)}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-sm font-medium text-barber mb-2">
+                      Available Times
+                    </FormLabel>
+                    {loading ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                          <div key={i} className="border rounded-lg p-3 bg-gray-100 animate-pulse h-10"></div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" role="radiogroup" aria-label="Available times">
+                        {availableTimes.map((time) => (
+                          <div 
+                            key={time}
+                            className={`
+                              border rounded-lg p-3 cursor-pointer text-center transition-all hover:border-barber-purple
+                              ${field.value === time ? 'border-barber-purple bg-barber-light/10' : 'border-gray-200'}
+                            `}
+                            onClick={() => form.setValue('time', time, { shouldValidate: true })}
+                            role="radio"
+                            aria-checked={field.value === time}
+                            tabIndex={field.value === time ? 0 : -1}
+                          >
+                            <p className="text-sm font-medium">{time}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-between">
+                <button 
+                  type="button" 
+                  className="border border-gray-300 text-gray-700 px-6 py-3 rounded hover:bg-gray-50 transition-colors"
+                  onClick={prevStep}
+                  disabled={loading}
+                >
+                  Back
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-primary"
+                  onClick={nextStep}
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? 'Loading...' : 'Continue'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid grid-cols-1 gap-6">
+                <FormField
+                  control={form.control}
                   name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
-                  placeholder="Enter your full name"
-                  required
-                  aria-required="true"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="name" className="block text-sm font-medium text-barber mb-2">
+                        Your Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          id="name"
+                          {...field}
+                          className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
+                          placeholder="Enter your full name"
+                          required
+                          aria-required="true"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-barber mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
+                
+                <FormField
+                  control={form.control}
                   name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
-                  placeholder="your@email.com"
-                  required
-                  aria-required="true"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="email" className="block text-sm font-medium text-barber mb-2">
+                        Email Address
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          id="email"
+                          {...field}
+                          className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
+                          placeholder="your@email.com"
+                          required
+                          aria-required="true"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-barber mb-2">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
+                
+                <FormField
+                  control={form.control}
                   name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
-                  placeholder="(123) 456-7890"
-                  required
-                  aria-required="true"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="phone" className="block text-sm font-medium text-barber mb-2">
+                        Phone Number
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          id="phone"
+                          {...field}
+                          className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
+                          placeholder="(123) 456-7890"
+                          required
+                          aria-required="true"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="notes" className="block text-sm font-medium text-barber mb-2">
+                        Special Requests (Optional)
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          id="notes"
+                          {...field}
+                          className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
+                          placeholder="Any special requests or notes for your barber"
+                          rows={3}
+                          aria-required="false"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
               
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-barber mb-2">
-                  Special Requests (Optional)
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-barber-purple"
-                  placeholder="Any special requests or notes for your barber"
-                  rows={3}
-                  aria-required="false"
-                ></textarea>
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h4 className="font-medium text-barber mb-2">Appointment Summary</h4>
-              <div className="text-sm space-y-1">
-                <p><span className="text-barber-neutral">Service:</span> {formData.service}</p>
-                <p><span className="text-barber-neutral">Barber:</span> {formData.barber}</p>
-                <p><span className="text-barber-neutral">Date:</span> {formData.date ? formatDisplayDate(parseDate(formData.date)) : ''}</p>
-                <p><span className="text-barber-neutral">Time:</span> {formData.time}</p>
-              </div>
-            </div>
+              <AccessibilityWrapper ariaLabel="Appointment Summary" className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h4 className="font-medium text-barber mb-2">Appointment Summary</h4>
+                <div className="text-sm space-y-1">
+                  <p><span className="text-barber-neutral">Service:</span> {form.getValues('service')}</p>
+                  <p><span className="text-barber-neutral">Barber:</span> {form.getValues('barber')}</p>
+                  <p><span className="text-barber-neutral">Date:</span> {form.getValues('date') ? formatDisplayDate(parseDate(form.getValues('date'))) : ''}</p>
+                  <p><span className="text-barber-neutral">Time:</span> {form.getValues('time')}</p>
+                </div>
+              </AccessibilityWrapper>
 
-            <div className="flex justify-between">
-              <button 
-                type="button" 
-                className="border border-gray-300 text-gray-700 px-6 py-3 rounded hover:bg-gray-50 transition-colors"
-                onClick={prevStep}
-                disabled={loading}
-              >
-                Back
-              </button>
-              <button 
-                type="submit" 
-                className="btn-primary"
-                disabled={loading}
-                aria-busy={loading}
-              >
-                {loading ? 'Processing...' : 'Confirm Booking'}
-              </button>
+              <div className="flex justify-between">
+                <button 
+                  type="button" 
+                  className="border border-gray-300 text-gray-700 px-6 py-3 rounded hover:bg-gray-50 transition-colors"
+                  onClick={prevStep}
+                  disabled={loading}
+                >
+                  Back
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? 'Processing...' : 'Confirm Booking'}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </form>
+          )}
+        </form>
+      </Form>
     </div>
   );
 };
