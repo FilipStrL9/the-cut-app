@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { GalleryHorizontal } from "lucide-react";
+import ImageOptimizer from "./ImageOptimizer";
 
 interface GalleryImage {
   id: number;
@@ -82,6 +83,8 @@ export const Gallery = () => {
                   ? "bg-barber-purple text-white"
                   : "text-gray-600 hover:text-barber-purple"
               }`}
+              aria-pressed={activeCategory === category}
+              aria-label={`Filter by ${category}`}
             >
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </button>
@@ -89,13 +92,14 @@ export const Gallery = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" role="list" aria-label="Gallery images">
         {filteredImages.map((image) => (
           <div 
             key={image.id} 
             className="relative overflow-hidden rounded-lg aspect-square group"
+            role="listitem"
           >
-            <img
+            <ImageOptimizer
               src={image.url}
               alt={image.alt}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
@@ -111,7 +115,7 @@ export const Gallery = () => {
       
       {filteredImages.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12">
-          <GalleryHorizontal className="w-12 h-12 text-gray-400 mb-4" />
+          <GalleryHorizontal className="w-12 h-12 text-gray-400 mb-4" aria-hidden="true" />
           <h3 className="text-xl font-medium text-gray-500">No images found</h3>
           <p className="text-gray-400">Try selecting a different category</p>
         </div>

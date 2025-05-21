@@ -1,0 +1,78 @@
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Type checking
+      run: npx tsc --noEmit
+    
+    - name: ESLint check
+      run: npx eslint . --ext .ts,.tsx
+    
+    - name: Build
+      run: npm run build
+    
+    - name: Cache build output
+      uses: actions/cache@v4
+      with:
+        path: dist
+        key: ${{ runner.os }}-build-${{ github.sha }}
+
+  lighthouse:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.12.x
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Run Lighthouse CI
+        run: lhci autorun --upload.target=temporary-public-storage
+      
+      # Fail the workflow if Lighthouse scores are below thresholds
+      - name: Check Lighthouse scores
+        run: |
+          scores=$(cat .lighthouseci/lhr-*.json | jq -r '.categories.performance.score, .categories.accessibility.score')
+          performance=$(echo "$scores" | head -n 1)
+          accessibility=$(echo "$scores" | tail -n 1)
+          
+          if (( $(echo "$performance < 0.9" | bc -l) )) || (( $(echo "$accessibility < 0.9" | bc -l) )); then
+            echo "Lighthouse scores below thresholds:"
+            echo "Performance: $performance (threshold: 0.9)"
+            echo "Accessibility: $accessibility (threshold: 0.9)"
+            exit 1
+          fi
