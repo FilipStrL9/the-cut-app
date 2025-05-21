@@ -74,7 +74,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   h1, h2, h3, h4, h5 {
@@ -98,8 +98,43 @@
   .btn-outline {
     @apply border border-barber-purple text-barber-purple px-6 py-3 rounded hover:bg-barber-purple/10 transition-colors;
   }
+  .input-field {
+    @apply rounded-md border border-gray-300 px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-barber-purple focus:border-transparent;
+  }
 }
 
 .gradient-bg {
   background: linear-gradient(108deg, #1A1F2C 0%, #2A2F3C 100%);
+}
+
+/* Add rounded corners to form elements */
+.form-input, 
+.form-select, 
+.form-textarea, 
+.btn, 
+.card {
+  border-radius: 0.75rem !important;
+}
+
+/* Enhance focus states */
+.focus-visible:focus {
+  @apply outline-none ring-2 ring-barber-purple ring-offset-2;
+}
+
+/* Ensure buttons have rounded appearance */
+button, 
+.button, 
+[type="button"], 
+[type="submit"] {
+  @apply rounded-lg transition-all duration-200 font-medium;
+}
+
+/* Enhance mobile responsiveness */
+@media (max-width: 640px) {
+  .container {
+    @apply px-4;
+  }
+  .btn-primary, .btn-secondary, .btn-outline {
+    @apply px-4 py-2 text-sm;
+  }
 }

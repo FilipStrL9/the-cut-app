@@ -9,6 +9,7 @@ import Services from "./pages/Services";
 import Barbers from "./pages/Barbers";
 import GalleryPage from "./pages/Gallery";
 import Book from "./pages/Book";
+import MyAppointments from "./pages/MyAppointments";
 import NotFound from "./pages/NotFound";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/barbers" element={<Barbers />} />
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/book" element={<Book />} />
+              <Route path="/appointments" element={<MyAppointments />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

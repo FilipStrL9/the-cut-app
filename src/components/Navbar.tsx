@@ -12,6 +12,7 @@ const Navbar = () => {
     { name: "Services", href: "/services" },
     { name: "Barbers", href: "/barbers" },
     { name: "Gallery", href: "/gallery" },
+    { name: "Appointments", href: "/appointments" },
     { name: "Book", href: "/book" },
   ];
 
@@ -55,6 +56,7 @@ const Navbar = () => {
         <button 
           className="md:hidden"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
           {isMenuOpen ? (
             <X className="h-6 w-6 text-barber" />
