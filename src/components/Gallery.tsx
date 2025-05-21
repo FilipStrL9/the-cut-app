@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Gallery as LucideGallery } from "lucide-react";
+import { GalleryHorizontal } from "lucide-react";
 
 interface GalleryImage {
   id: number;
@@ -9,7 +9,7 @@ interface GalleryImage {
   category: string;
 }
 
-const Gallery = () => {
+export const Gallery = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   
   const categories = ["all", "haircuts", "beards", "shop"];
@@ -111,7 +111,7 @@ const Gallery = () => {
       
       {filteredImages.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12">
-          <LucideGallery className="w-12 h-12 text-gray-400 mb-4" />
+          <GalleryHorizontal className="w-12 h-12 text-gray-400 mb-4" />
           <h3 className="text-xl font-medium text-gray-500">No images found</h3>
           <p className="text-gray-400">Try selecting a different category</p>
         </div>

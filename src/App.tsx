@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Barbers from "./pages/Barbers";
-import Gallery from "./pages/Gallery";
+import GalleryPage from "./pages/Gallery";
 import Book from "./pages/Book";
 import NotFound from "./pages/NotFound";
 import Navbar from "./components/Navbar";
@@ -27,7 +27,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/services" element={<Services />} />
             <Route path="/barbers" element={<Barbers />} />
-            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/book" element={<Book />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -1,7 +1,7 @@
 
-import { Gallery as GalleryComponent } from "@/components/Gallery";
+import Gallery from "@/components/Gallery";
 
-const Gallery = () => {
+const GalleryPage = () => {
   return (
     <div className="pt-24 pb-16">
       <div className="container">
@@ -12,10 +12,10 @@ const Gallery = () => {
           </p>
         </div>
         
-        <GalleryComponent />
+        <Gallery />
       </div>
     </div>
   );
 };
 
-export default Gallery;
+export default GalleryPage;
